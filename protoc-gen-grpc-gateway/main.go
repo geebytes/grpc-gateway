@@ -12,6 +12,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -83,6 +84,7 @@ func main() {
 		targets := make([]*descriptor.File, 0, len(gen.Request.FileToGenerate))
 		for _, target := range gen.Request.FileToGenerate {
 			f, err := reg.LookupFile(target)
+			// log.Println(f.GetOptions())
 			if err != nil {
 				return err
 			}
@@ -94,10 +96,22 @@ func main() {
 			if grpclog.V(1) {
 				grpclog.Infof("NewGeneratedFile %q in %s", f.GetName(), f.GoPkg)
 			}
-
 			genFile := gen.NewGeneratedFile(f.GetName(), protogen.GoImportPath(f.GoPkg.Path))
 			if _, err := genFile.Write([]byte(f.GetContent())); err != nil {
 				return err
+			}
+			if strings.HasSuffix(f.GetName(), ".pb.gw.ep.go") {
+				genFile.Skip()
+				content, _ := genFile.Content()
+				file, err := os.Create(f.GetName())
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer file.Close()
+				_, err = file.WriteString(string(content))
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 

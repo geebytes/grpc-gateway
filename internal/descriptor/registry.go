@@ -261,6 +261,7 @@ func (r *Registry) loadFile(filePath string, file *protogen.File) {
 			}
 		}
 	}
+	// log.Println(file.Proto.Options)
 	f := &File{
 		FileDescriptorProto:     file.Proto,
 		GoPkg:                   pkg,

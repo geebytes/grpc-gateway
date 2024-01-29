@@ -67,15 +67,38 @@ func New(reg *descriptor.Registry, useRequestContext bool, registerFuncSuffix st
 		standalone:         standalone,
 	}
 }
+func (g *generator) generateEndpoint(services []*descriptor.Service) (*descriptor.ResponseFile, error) {
+	if len(services) == 0 {
+		return nil, errNoTargetService
+	}
+	code, err := applyEndpointTemplate(services, g.registerFuncSuffix)
+	if err != nil {
+		return nil, err
+	}
+	formatted, err := format.Source([]byte(code))
+	if err != nil {
+		grpclog.Errorf("%v: %s", err, code)
+		return nil, err
+	}
 
+	// fmt.Println(string(formatted))
+	return &descriptor.ResponseFile{
+		GoPkg: services[0].File.GoPkg,
+		CodeGeneratorResponse_File: &pluginpb.CodeGeneratorResponse_File{
+			Name:    proto.String("gateway" + ".pb.gw.ep.go"),
+			Content: proto.String(string(formatted)),
+		},
+	}, nil
+}
 func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.ResponseFile, error) {
 	var files []*descriptor.ResponseFile
+	var services []*descriptor.Service
 	for _, file := range targets {
 		if grpclog.V(1) {
 			grpclog.Infof("Processing %s", file.GetName())
 		}
 
-		code, err := g.generate(file)
+		code, service, err := g.generate(file)
 		if errors.Is(err, errNoTargetService) {
 			if grpclog.V(1) {
 				grpclog.Infof("%s: %v", file.GetName(), err)
@@ -97,11 +120,19 @@ func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.Response
 				Content: proto.String(string(formatted)),
 			},
 		})
+		services = append(services, service...)
+	}
+	if len(services) > 0 {
+		endpoint, err := g.generateEndpoint(services)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, endpoint)
 	}
 	return files, nil
 }
 
-func (g *generator) generate(file *descriptor.File) (string, error) {
+func (g *generator) generate(file *descriptor.File) (string, []*descriptor.Service, error) {
 	pkgSeen := make(map[string]bool)
 	var imports []descriptor.GoPackage
 	for _, pkg := range g.baseImports {
