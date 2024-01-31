@@ -36,8 +36,8 @@ var (
 	versionFlag                = flag.Bool("version", false, "print the current version")
 	warnOnUnboundMethods       = flag.Bool("warn_on_unbound_methods", false, "emit a warning message if an RPC method has no HttpRule annotation")
 	generateUnboundMethods     = flag.Bool("generate_unbound_methods", false, "generate proxy methods even for RPC methods that have no HttpRule annotation")
-
-	_ = flag.Bool("logtostderr", false, "Legacy glog compatibility. This flag is a no-op, you can safely remove it")
+	onlyDescriptors            = flag.Bool("only_descriptors", false, "only generate the gateway descriptors file")
+	_                          = flag.Bool("logtostderr", false, "Legacy glog compatibility. This flag is a no-op, you can safely remove it")
 )
 
 // Variables set by goreleaser at build time
@@ -93,6 +93,10 @@ func main() {
 
 		files, err := generator.Generate(targets)
 		for _, f := range files {
+			if *onlyDescriptors && strings.HasSuffix(f.GetName(), ".pb.gw.go") {
+				continue
+
+			}
 			if grpclog.V(1) {
 				grpclog.Infof("NewGeneratedFile %q in %s", f.GetName(), f.GoPkg)
 			}

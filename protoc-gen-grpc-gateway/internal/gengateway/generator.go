@@ -1,6 +1,7 @@
 package gengateway
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go/format"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/descriptor"
 	gen "github.com/grpc-ecosystem/grpc-gateway/v2/internal/generator"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
@@ -71,6 +74,7 @@ func (g *generator) generateEndpoint(services []*descriptor.Service) (*descripto
 	if len(services) == 0 {
 		return nil, errNoTargetService
 	}
+
 	code, err := applyEndpointTemplate(services, g.registerFuncSuffix)
 	if err != nil {
 		return nil, err
@@ -89,6 +93,77 @@ func (g *generator) generateEndpoint(services []*descriptor.Service) (*descripto
 			Content: proto.String(string(formatted)),
 		},
 	}, nil
+}
+func (g *generator) serviceEndpoints(services []*descriptor.Service) (*descriptor.ResponseFile, error) {
+	type httpEndpointItem struct {
+		Pattern        runtime.Pattern
+		Template       httprule.Template
+		HttpMethod     string
+		FullMethodName string
+		HttpUri        string
+		PathParams     []string
+		InName         string
+		OutName        string
+		IsClientStream bool
+		IsServerStream bool
+		Pkg            string
+		InPkg          string
+		OutPkg         string
+	}
+
+	binds := make(map[string][]*httpEndpointItem)
+	for _, svc := range services {
+		for _, m := range svc.Methods {
+			key := fmt.Sprintf("/%s.%s/%s", *svc.File.Package, svc.GetName(), m.GetName())
+			items := make([]*httpEndpointItem, 0)
+			for _, b := range m.Bindings {
+				if b.PathTmpl.Template == "" {
+					continue
+				}
+				item := &httpEndpointItem{}
+				item.Template = b.PathTmpl
+				item.HttpMethod = b.HTTPMethod
+				item.FullMethodName = key
+				item.HttpUri = b.PathTmpl.Template
+				item.PathParams = make([]string, 0)
+				item.InName = m.RequestType.GetName()
+				item.OutName = m.ResponseType.GetName()
+				item.IsClientStream = m.GetClientStreaming()
+				item.IsServerStream = m.GetServerStreaming()
+				item.Pkg = *svc.File.Package
+				if m.RequestType != nil {
+					item.InPkg = *m.RequestType.File.Package
+				}
+				if m.ResponseType != nil {
+					item.OutPkg = *m.ResponseType.File.Package
+				}
+				for _, path := range b.PathParams {
+					item.PathParams = append(item.PathParams, path.FieldPath.String())
+				}
+				items = append(items, item)
+			}
+			binds[key] = items
+
+		}
+	}
+	jsonData, err := json.MarshalIndent(binds, "", "    ")
+	if err != nil {
+		return nil, err
+	}
+	// file, err := os.Create("binds.json")
+	// if err != nil {
+	// 	return fmt.Errorf("Error occurred during file creation. Error: %s", err.Error())
+	// }
+	// defer file.Close()
+	// _, err = file.Write(jsonData)
+	f := &descriptor.ResponseFile{
+		GoPkg: services[0].File.GoPkg,
+		CodeGeneratorResponse_File: &pluginpb.CodeGeneratorResponse_File{
+			Name:    proto.String("gateway" + ".json"),
+			Content: proto.String(string(jsonData)),
+		},
+	}
+	return f, nil
 }
 func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.ResponseFile, error) {
 	var files []*descriptor.ResponseFile
@@ -123,11 +198,16 @@ func (g *generator) Generate(targets []*descriptor.File) ([]*descriptor.Response
 		services = append(services, service...)
 	}
 	if len(services) > 0 {
-		endpoint, err := g.generateEndpoint(services)
+		// endpoint, err := g.generateEndpoint(services)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// files = append(files, endpoint)
+		f, err := g.serviceEndpoints(services)
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, endpoint)
+		files = append(files, f)
 	}
 	return files, nil
 }
