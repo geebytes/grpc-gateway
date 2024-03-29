@@ -113,7 +113,12 @@ func (g *generator) serviceEndpoints(services []*descriptor.Service) (*descripto
 
 	binds := make(map[string][]*httpEndpointItem)
 	for _, svc := range services {
+		// for _,ext:=range svc.Options..GetExtension(){
+		// 	fmt.Println(ext)
+
+		// }
 		for _, m := range svc.Methods {
+
 			key := fmt.Sprintf("/%s.%s/%s", *svc.File.Package, svc.GetName(), m.GetName())
 			items := make([]*httpEndpointItem, 0)
 			for _, b := range m.Bindings {

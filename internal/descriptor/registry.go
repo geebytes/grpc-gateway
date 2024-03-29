@@ -2,8 +2,11 @@ package descriptor
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/codegenerator"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/descriptor/openapiconfig"
@@ -875,4 +878,41 @@ func (r *Registry) SetPreserveRPCOrder(preserve bool) {
 // IsPreserveRPCOrder returns preserveRPCOrder
 func (r *Registry) IsPreserveRPCOrder() bool {
 	return r.preserveRPCOrder
+}
+
+func (r Registry) FromFileDescriptorSet(fds *descriptor.FileDescriptorSet, generatedFilenamePrefix string) ([]*File,error) {
+	files := make([]*File, 0)
+	for _, file := range fds.File {
+		fmt.Println(file.GetName())
+		pkg := GoPackage{
+			Path: *file.Options.GoPackage,
+			Name: filepath.Base(*file.Options.GoPackage),
+		}
+		if r.standalone {
+			pkg.Alias = "ext" + cases.Title(language.AmericanEnglish).String(pkg.Name)
+		}
+		if err := r.ReserveGoPackageAlias(pkg.Name, pkg.Path); err != nil {
+			for i := 0; ; i++ {
+				alias := fmt.Sprintf("%s_%d", pkg.Name, i)
+				if err := r.ReserveGoPackageAlias(alias, pkg.Path); err == nil {
+					pkg.Alias = alias
+					break
+				}
+			}
+		}
+		f := &File{
+			FileDescriptorProto:     file,
+			GoPkg:                   pkg,
+			GeneratedFilenamePrefix: generatedFilenamePrefix,
+		}
+		r.registerMsg(f, nil, file.MessageType)
+		r.registerEnum(f, nil, file.EnumType)
+		err:=r.loadServices(f)
+		if err != nil {
+			return nil,err
+		}
+		files = append(files, f)
+
+	}
+	return files,nil
 }
