@@ -220,7 +220,7 @@ func (m *Method) FQMN() string {
 // Binding describes how an HTTP endpoint is bound to a gRPC method.
 type Binding struct {
 	// Method is the method which the endpoint is bound to.
-	Method *Method
+	Method *Method 
 	// Index is a zero-origin index of the binding in the target method
 	Index int
 	// PathTmpl is path template where this method is mapped to.

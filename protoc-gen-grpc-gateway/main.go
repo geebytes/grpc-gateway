@@ -12,6 +12,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -35,8 +36,8 @@ var (
 	versionFlag                = flag.Bool("version", false, "print the current version")
 	warnOnUnboundMethods       = flag.Bool("warn_on_unbound_methods", false, "emit a warning message if an RPC method has no HttpRule annotation")
 	generateUnboundMethods     = flag.Bool("generate_unbound_methods", false, "generate proxy methods even for RPC methods that have no HttpRule annotation")
-
-	_ = flag.Bool("logtostderr", false, "Legacy glog compatibility. This flag is a no-op, you can safely remove it")
+	onlyDescriptors            = flag.Bool("only_descriptors", false, "only generate the gateway descriptors file")
+	_                          = flag.Bool("logtostderr", false, "Legacy glog compatibility. This flag is a no-op, you can safely remove it")
 )
 
 // Variables set by goreleaser at build time
@@ -83,6 +84,7 @@ func main() {
 		targets := make([]*descriptor.File, 0, len(gen.Request.FileToGenerate))
 		for _, target := range gen.Request.FileToGenerate {
 			f, err := reg.LookupFile(target)
+			// log.Println(f.GetOptions())
 			if err != nil {
 				return err
 			}
@@ -91,13 +93,29 @@ func main() {
 
 		files, err := generator.Generate(targets)
 		for _, f := range files {
+			if *onlyDescriptors && strings.HasSuffix(f.GetName(), ".pb.gw.go") {
+				continue
+
+			}
 			if grpclog.V(1) {
 				grpclog.Infof("NewGeneratedFile %q in %s", f.GetName(), f.GoPkg)
 			}
-
 			genFile := gen.NewGeneratedFile(f.GetName(), protogen.GoImportPath(f.GoPkg.Path))
 			if _, err := genFile.Write([]byte(f.GetContent())); err != nil {
 				return err
+			}
+			if strings.HasSuffix(f.GetName(), ".pb.gw.ep.go") {
+				genFile.Skip()
+				content, _ := genFile.Content()
+				file, err := os.Create(f.GetName())
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer file.Close()
+				_, err = file.WriteString(string(content))
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 

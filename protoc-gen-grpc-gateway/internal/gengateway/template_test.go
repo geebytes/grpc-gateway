@@ -85,7 +85,7 @@ func TestApplyTemplateHeader(t *testing.T) {
 			},
 		},
 	}
-	got, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+	got, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 	if err != nil {
 		t.Errorf("applyTemplate(%#v) failed with %v; want success", file, err)
 		return
@@ -231,7 +231,7 @@ func TestApplyTemplateRequestWithoutClientStreaming(t *testing.T) {
 				},
 			},
 		}
-		got, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+		got, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 		if err != nil {
 			t.Errorf("applyTemplate(%#v) failed with %v; want success", file, err)
 			return
@@ -395,7 +395,7 @@ func TestApplyTemplateRequestWithClientStreaming(t *testing.T) {
 				},
 			},
 		}
-		got, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+		got, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 		if err != nil {
 			t.Errorf("applyTemplate(%#v) failed with %v; want success", file, err)
 			return
@@ -570,7 +570,7 @@ func TestApplyTemplateInProcess(t *testing.T) {
 				},
 			},
 		}
-		got, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+		got, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 		if err != nil {
 			t.Errorf("applyTemplate(%#v) failed with %v; want success", file, err)
 			return
@@ -653,7 +653,7 @@ func TestAllowPatchFeature(t *testing.T) {
 	}
 	want := "if protoReq.UpdateMask == nil || len(protoReq.UpdateMask.GetPaths()) == 0 {\n"
 	for _, allowPatchFeature := range []bool{true, false} {
-		got, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: allowPatchFeature}, descriptor.NewRegistry())
+		got, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: allowPatchFeature}, descriptor.NewRegistry())
 		if err != nil {
 			t.Errorf("applyTemplate(%#v) failed with %v; want success", file, err)
 			return
@@ -749,7 +749,7 @@ func TestIdentifierCapitalization(t *testing.T) {
 		},
 	}
 
-	got, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+	got, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 	if err != nil {
 		t.Errorf("applyTemplate(%#v) failed with %v; want success", file, err)
 		return
@@ -837,7 +837,7 @@ func TestDuplicatePathsInSameService(t *testing.T) {
 			},
 		},
 	}
-	_, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+	_, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 	if err == nil {
 		t.Errorf("applyTemplate(%#v) succeeded; want an error", file)
 		return
@@ -922,7 +922,7 @@ func TestDuplicatePathsInDifferentService(t *testing.T) {
 			},
 		},
 	}
-	_, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
+	_, _, err := applyTemplate(param{File: crossLinkFixture(&file), RegisterFuncSuffix: "Handler", AllowPatchFeature: true}, descriptor.NewRegistry())
 	if err != nil {
 		t.Errorf("applyTemplate(%#v) failed; want success", file)
 		return

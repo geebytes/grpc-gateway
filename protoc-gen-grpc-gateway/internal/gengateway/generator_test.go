@@ -45,6 +45,7 @@ func newExampleFileDescriptorWithGoPkg(gp *descriptor.GoPackage, filenamePrefix 
 			Dependency:  []string{"a.example/b/c.proto", "a.example/d/e.proto"},
 			MessageType: []*descriptorpb.DescriptorProto{msgdesc},
 			Service:     []*descriptorpb.ServiceDescriptorProto{svc},
+			Options:     &descriptorpb.FileOptions{},
 		},
 		GoPkg:                   *gp,
 		GeneratedFilenamePrefix: filenamePrefix,
@@ -87,12 +88,17 @@ func TestGenerator_Generate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to generate stubs: %v", err)
 	}
-	if len(result) != 1 {
+	if len(result) != 2 {
 		t.Fatalf("expected to generate one file, got: %d", len(result))
 	}
 	expectedName := "path/to/example.pb.gw.go"
 	gotName := result[0].GetName()
 	if gotName != expectedName {
 		t.Fatalf("invalid name %q, expected %q", gotName, expectedName)
+	}
+	expectedEndpoint := "path/to/example.pb.gw.ep.go"
+	gotEndpoint := result[1].GetName()
+	if gotEndpoint != expectedEndpoint {
+		t.Fatalf("invalid name %q, expected %q", gotEndpoint, expectedEndpoint)
 	}
 }
