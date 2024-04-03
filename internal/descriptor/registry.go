@@ -880,10 +880,9 @@ func (r *Registry) IsPreserveRPCOrder() bool {
 	return r.preserveRPCOrder
 }
 
-func (r Registry) FromFileDescriptorSet(fds *descriptor.FileDescriptorSet, generatedFilenamePrefix string) ([]*File,error) {
+func (r Registry) FromFileDescriptorSet(fds *descriptor.FileDescriptorSet, generatedFilenamePrefix string) ([]*File, error) {
 	files := make([]*File, 0)
 	for _, file := range fds.File {
-		fmt.Println(file.GetName())
 		pkg := GoPackage{
 			Path: *file.Options.GoPackage,
 			Name: filepath.Base(*file.Options.GoPackage),
@@ -907,12 +906,12 @@ func (r Registry) FromFileDescriptorSet(fds *descriptor.FileDescriptorSet, gener
 		}
 		r.registerMsg(f, nil, file.MessageType)
 		r.registerEnum(f, nil, file.EnumType)
-		err:=r.loadServices(f)
+		err := r.loadServices(f)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
 		files = append(files, f)
 
 	}
-	return files,nil
+	return files, nil
 }

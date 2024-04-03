@@ -8,6 +8,7 @@ import (
 	"net/textproto"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule"
 	"google.golang.org/grpc/codes"
@@ -64,6 +65,7 @@ type ServeMux struct {
 	routingErrorHandler       RoutingErrorHandlerFunc
 	disablePathLengthFallback bool
 	unescapingMode            UnescapingMode
+	lock                      sync.RWMutex
 }
 
 // ServeMuxOption is an option that can be given to a ServeMux on construction.
@@ -284,6 +286,7 @@ func NewServeMux(opts ...ServeMuxOption) *ServeMux {
 		streamErrorHandler:     DefaultStreamErrorHandler,
 		routingErrorHandler:    DefaultRoutingErrorHandler,
 		unescapingMode:         UnescapingModeDefault,
+		lock:                   sync.RWMutex{},
 	}
 
 	for _, opt := range opts {
@@ -483,4 +486,10 @@ func (s *ServeMux) isPathLengthFallback(r *http.Request) bool {
 type handler struct {
 	pat Pattern
 	h   HandlerFunc
+}
+
+func (s *ServeMux) DeleteHandle(ctx context.Context, meth string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	delete(s.handlers, meth)
 }
