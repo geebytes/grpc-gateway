@@ -35,6 +35,9 @@ func Register(fds *descriptor.FileDescriptorSet, standalone bool, generatedFilen
 			gatewayContent = append(gatewayContent, f.GetContent())
 		}
 	}
+	if len(gatewayContent) == 0 {
+		return nil, fmt.Errorf("no gateway content")
+	}
 
 	return gatewayContent, nil
 }
